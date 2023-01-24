@@ -280,7 +280,7 @@ int main(int argc, char **argv) {
 	SDL_Window* window = SDL_CreateWindow("Demo - MicroUI Cached Software-Rendered", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, 0);
 	ren_init(window);
 
-	fonts[0] = ren_font_load(&window_renderer, "./fonts/VictorMono-Medium.ttf", fontsSize, FONT_ANTIALIASING_SUBPIXEL, FONT_HINTING_FULL, FONT_STYLE_SMOOTH);
+	fonts[0] = ren_font_load(&window_renderer, "./fonts/AnonymousPro-Regular.ttf", fontsSize, FONT_ANTIALIASING_SUBPIXEL, FONT_HINTING_FULL, FONT_STYLE_SMOOTH);
 
 	// init microui
 	mu_Context* ctx = malloc(sizeof(mu_Context));

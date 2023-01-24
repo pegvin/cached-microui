@@ -44,9 +44,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Victor Mono (default UI font)
+### Anonymous Pro By Mark Simonson (default UI font)
 
-Copyright (c) 2021, Rune Bjørnerås (https://github.com/rubjo)
+Copyright (c) 2009, Mark Simonson (http://www.ms-studio.com, mark@marksimonson.com),
+with Reserved Font Name Anonymous Pro.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
@@ -66,7 +67,7 @@ with others.
 
 The OFL allows the licensed fonts to be used, studied, modified and
 redistributed freely as long as they are not sold by themselves. The
-fonts, including any derivative works, can be bundled, embedded,
+fonts, including any derivative works, can be bundled, embedded, 
 redistributed and/or sold with any software provided that any reserved
 names are not used by derivative works. The fonts and derivatives,
 however, cannot be released under any other type of license. The
