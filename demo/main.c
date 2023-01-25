@@ -5,6 +5,10 @@
 #include "rencache.h"
 #include "microui.h"
 
+static  char logbuf[64000];
+static   int logbuf_updated = 0;
+static float bg[3] = { 90, 95, 100 };
+
 RenFont* fonts[FONT_FALLBACK_MAX] = { NULL };
 float    fontsSize = 12.0f;
 
@@ -22,7 +26,10 @@ void r_draw_icon(int id, mu_Rect rect, mu_Color color) {
 }
 
 void r_set_clip_rect(mu_Rect _rect) {
-	RenRect rect = { _rect.x, _rect.y, _rect.w, _rect.h };
+	int w = 0, h = 0;
+	ren_get_size(&window_renderer, &w, &h);
+	if (_rect.w > w || _rect.h > h) return;
+	RenRect rect = { _rect.x, _rect.y, _rect.w > w ? w : _rect.w, _rect.h > h ? h : _rect.h };
 	rencache_set_clip_rect(rect);
 }
 
@@ -50,10 +57,6 @@ void r_draw_text(const char *text, mu_Vec2 pos, mu_Color clr) {
 	rencache_draw_text(&window_renderer, fonts, text, strlen(text), (float)pos.x, (int)pos.y, color);
 }
 
-static  char logbuf[64000];
-static   int logbuf_updated = 0;
-static float bg[3] = { 90, 95, 100 };
-
 static void write_log(const char *text) {
 	if (logbuf[0]) { strcat(logbuf, "\n"); }
 	strcat(logbuf, text);
@@ -63,10 +66,17 @@ static void write_log(const char *text) {
 
 static void test_window(mu_Context *ctx) {
 	/* do window */
-	if (mu_begin_window(ctx, "Demo Window", mu_rect(40, 40, 300, 450))) {
+	static mu_Rect winSizeNPos = { 40, 40, 300, 450 };
+	if (mu_begin_window(ctx, "Demo Window", winSizeNPos)) {
 		mu_Container *win = mu_get_current_container(ctx);
 		win->rect.w = mu_max(win->rect.w, 240);
 		win->rect.h = mu_max(win->rect.h, 300);
+		if (win->rect.x != winSizeNPos.x || win->rect.y != winSizeNPos.y) {
+			printf("Window Moved From: %d,%d to %d,%d\n", winSizeNPos.x, winSizeNPos.y, win->rect.x, win->rect.y);
+			r_clear(mu_color(bg[0], bg[1], bg[2], 255));
+			winSizeNPos.x = win->rect.x;
+			winSizeNPos.y = win->rect.y;
+		}
 
 		/* window info */
 		if (mu_header(ctx, "Window Info")) {
@@ -161,7 +171,16 @@ static void test_window(mu_Context *ctx) {
 
 
 static void log_window(mu_Context *ctx) {
-	if (mu_begin_window(ctx, "Log Window", mu_rect(350, 40, 300, 200))) {
+	static mu_Rect winSizeNPos = { 350, 40, 300, 200 };
+	if (mu_begin_window(ctx, "Log Window", winSizeNPos)) {
+		mu_Container* win = mu_get_current_container(ctx);
+		if (win->rect.x != winSizeNPos.x || win->rect.y != winSizeNPos.y) {
+			printf("Window Moved From: %d,%d to %d,%d\n", winSizeNPos.x, winSizeNPos.y, win->rect.x, win->rect.y);
+			r_clear(mu_color(bg[0], bg[1], bg[2], 255));
+			winSizeNPos.x = win->rect.x;
+			winSizeNPos.y = win->rect.y;
+		}
+
 		/* output text panel */
 		mu_layout_row(ctx, 1, (int[]) { -1 }, -25);
 		mu_begin_panel(ctx, "Log Output");
@@ -223,8 +242,16 @@ static void style_window(mu_Context *ctx) {
 		{ NULL }
 	};
 
-	if (mu_begin_window(ctx, "Style Editor", mu_rect(350, 250, 300, 240))) {
-		int sw = mu_get_current_container(ctx)->body.w * 0.14;
+	static mu_Rect winSizeNPos = { 350, 250, 300, 240 };
+	if (mu_begin_window(ctx, "Style Editor", winSizeNPos)) {
+		mu_Container* win = mu_get_current_container(ctx);
+		if (win->rect.x != winSizeNPos.x || win->rect.y != winSizeNPos.y) {
+			printf("Window Moved From: %d,%d to %d,%d\n", winSizeNPos.x, winSizeNPos.y, win->rect.x, win->rect.y);
+			r_clear(mu_color(bg[0], bg[1], bg[2], 255));
+			winSizeNPos.x = win->rect.x;
+			winSizeNPos.y = win->rect.y;
+		}
+		int sw = win->body.w * 0.14;
 		mu_layout_row(ctx, 6, (int[]) { 80, sw, sw, sw, sw, -1 }, 0);
 		for (int i = 0; colors[i].label; i++) {
 			mu_label(ctx, colors[i].label);
@@ -292,18 +319,27 @@ int main(int argc, char **argv) {
 	r_clear(mu_color(bg[0], bg[1], bg[2], 255));
 	r_end();
 
+	rencache_show_debug(true);
+
 	bool ShouldClose = false;
+	bool ShouldRender = true;
+
+	unsigned int frameStart, frameTime;
+	const unsigned int frameDelay = 1000 / 60;
+
 	while (!ShouldClose) {
+		frameStart = SDL_GetTicks();
 		SDL_Event e;
 		while (SDL_PollEvent(&e)) {
 			switch (e.type) {
 				case SDL_QUIT: ShouldClose = true; break;
-				case SDL_MOUSEMOTION: mu_input_mousemove(ctx, e.motion.x, e.motion.y); break;
-				case SDL_MOUSEWHEEL: mu_input_scroll(ctx, 0, e.wheel.y * -30); break;
-				case SDL_TEXTINPUT: mu_input_text(ctx, e.text.text); break;
+				case SDL_MOUSEMOTION: mu_input_mousemove(ctx, e.motion.x, e.motion.y); ShouldRender = true; break;
+				case SDL_MOUSEWHEEL: mu_input_scroll(ctx, 0, e.wheel.y * -30); ShouldRender = true; break;
+				case SDL_TEXTINPUT: mu_input_text(ctx, e.text.text); ShouldRender = true; break;
 
 				case SDL_MOUSEBUTTONDOWN:
 				case SDL_MOUSEBUTTONUP: {
+					ShouldRender = true;
 					int b = button_map[e.button.button & 0xff];
 					if (b && e.type == SDL_MOUSEBUTTONDOWN) { mu_input_mousedown(ctx, e.button.x, e.button.y, b); }
 					if (b && e.type ==   SDL_MOUSEBUTTONUP) { mu_input_mouseup(ctx, e.button.x, e.button.y, b);   }
@@ -312,6 +348,7 @@ int main(int argc, char **argv) {
 
 				case SDL_KEYDOWN:
 				case SDL_KEYUP: {
+					ShouldRender = true;
 					int c = key_map[e.key.keysym.sym & 0xff];
 					if (c && e.type == SDL_KEYDOWN) { mu_input_keydown(ctx, c); }
 					if (c && e.type ==   SDL_KEYUP) { mu_input_keyup(ctx, c);   }
@@ -320,22 +357,28 @@ int main(int argc, char **argv) {
 			}
 		}
 
-		/* process frame */
-		process_frame(ctx);
+		if (ShouldRender == true) {
+			/* process frame */
+			process_frame(ctx);
 
-		/* render */
-		r_begin();
-		r_clear(mu_color(bg[0], bg[1], bg[2], 255));
-		mu_Command *cmd = NULL;
-		while (mu_next_command(ctx, &cmd)) {
-			switch (cmd->type) {
-				case MU_COMMAND_TEXT: r_draw_text(cmd->text.str, cmd->text.pos, cmd->text.color); break;
-				case MU_COMMAND_RECT: r_draw_rect(cmd->rect.rect, cmd->rect.color); break;
-				case MU_COMMAND_ICON: r_draw_icon(cmd->icon.id, cmd->icon.rect, cmd->icon.color); break;
-				case MU_COMMAND_CLIP: r_set_clip_rect(cmd->clip.rect); break;
+			/* render */
+			r_begin();
+			mu_Command *cmd = NULL;
+			while (mu_next_command(ctx, &cmd)) {
+				switch (cmd->type) {
+					case MU_COMMAND_TEXT: r_draw_text(cmd->text.str, cmd->text.pos, cmd->text.color); break;
+					case MU_COMMAND_RECT: r_draw_rect(cmd->rect.rect, cmd->rect.color); break;
+					case MU_COMMAND_ICON: r_draw_icon(cmd->icon.id, cmd->icon.rect, cmd->icon.color); break;
+					case MU_COMMAND_CLIP: r_set_clip_rect(cmd->clip.rect); break;
+				}
 			}
+			r_end();
+			ShouldRender = false;
 		}
-		r_end();
+
+		frameTime = SDL_GetTicks() - frameStart;
+		if (frameDelay > frameTime) SDL_Delay(frameDelay - frameTime);
+		frameStart = SDL_GetTicks();
 	}
 
 	for (int i = 0; i < FONT_FALLBACK_MAX; i++) {
